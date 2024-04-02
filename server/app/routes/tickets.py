@@ -1,21 +1,16 @@
 from flask import Blueprint, request, jsonify
-from utils.storage import load_tickets, save_tickets
+from app.models import Ticket
+from app.db import db
 
-tickets_bp = Blueprint("tickets", __name__)
+tickets_bp = Blueprint("tickets", __name__, url_prefix="/api/tickets")
 
-# Load existing tickets from file
-tickets = load_tickets()
-ticket_id_counter = max((t["id"] for t in tickets), default=0) + 1
-
-# Order of statuses for advancing logic
 STATUS_ORDER = ["To Do", "In Progress", "Testing", "Deployed"]
 
-@tickets_bp.route("/api/tickets/", methods=["GET", "POST"])
+@tickets_bp.route("/", methods=["GET", "POST"])
 def handle_tickets():
-    global ticket_id_counter
-
     if request.method == "GET":
-        return jsonify(tickets)
+        tickets = Ticket.query.all()
+        return jsonify([t.to_dict() for t in tickets])
 
     if request.method == "POST":
         data = request.get_json()
@@ -25,44 +20,48 @@ def handle_tickets():
         if not title or not status:
             return jsonify({"error": "Missing title or status"}), 400
 
-        ticket = {
-            "id": ticket_id_counter,
-            "title": title,
-            "status": status,
-        }
-        tickets.append(ticket)
-        ticket_id_counter += 1
-        save_tickets(tickets)
-        return jsonify(ticket), 201
+        ticket = Ticket(title=title, status=status)
+        db.session.add(ticket)
+        db.session.commit()
+        return jsonify(ticket.to_dict()), 201
 
-@tickets_bp.route("/api/tickets/<int:ticket_id>/advance", methods=["PATCH"])
+@tickets_bp.route("/<int:ticket_id>/advance", methods=["PATCH"])
 def advance_ticket(ticket_id):
-    for ticket in tickets:
-        if ticket["id"] == ticket_id:
-            current_index = STATUS_ORDER.index(ticket["status"])
-            if current_index < len(STATUS_ORDER) - 1:
-                ticket["status"] = STATUS_ORDER[current_index + 1]
-                save_tickets(tickets)
-                return jsonify(ticket)
-            else:
-                return jsonify({"error": "Ticket is already in final status"}), 400
-    return jsonify({"error": "Ticket not found"}), 404
+    ticket = Ticket.query.get(ticket_id)
+    if not ticket:
+        return jsonify({"error": "Ticket not found"}), 404
 
-@tickets_bp.route("/api/tickets/<int:ticket_id>", methods=["PATCH", "DELETE"])
+    try:
+        current_index = STATUS_ORDER.index(ticket.status)
+        if current_index < len(STATUS_ORDER) - 1:
+            ticket.status = STATUS_ORDER[current_index + 1]
+            db.session.commit()
+            return jsonify(ticket.to_dict())
+        else:
+            return jsonify({"error": "Ticket is already in final status"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid status value"}), 400
+
+@tickets_bp.route("/<int:ticket_id>", methods=["PATCH", "DELETE"])
 def modify_ticket(ticket_id):
-    global tickets
-    ticket = next((t for t in tickets if t["id"] == ticket_id), None)
+    ticket = Ticket.query.get(ticket_id)
     if not ticket:
         return jsonify({"error": "Ticket not found"}), 404
 
     if request.method == "PATCH":
         data = request.get_json()
-        ticket["title"] = data.get("title", ticket["title"]).strip()
-        ticket["status"] = data.get("status", ticket["status"]).strip()
-        save_tickets(tickets)
-        return jsonify(ticket)
+        title = data.get("title", "").strip()
+        status = data.get("status", "").strip()
+
+        if title:
+            ticket.title = title
+        if status:
+            ticket.status = status
+
+        db.session.commit()
+        return jsonify(ticket.to_dict())
 
     if request.method == "DELETE":
-        tickets = [t for t in tickets if t["id"] != ticket_id]
-        save_tickets(tickets)
+        db.session.delete(ticket)
+        db.session.commit()
         return jsonify({"message": "Deleted"}), 204

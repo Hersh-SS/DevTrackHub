@@ -35,6 +35,11 @@ function App() {
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
+
+    fetch(`${import.meta.env.VITE_API_URL}/`)
+      .then(() => console.log("Backend pinged to prevent cold start"))
+      .catch(console.error);
+
     fetchTickets().then(setTickets).catch(console.error);
   }, []);
 
