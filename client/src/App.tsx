@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { fetchTickets, advanceTicket } from "./api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+const BASE_URL = "https://devtrackhub.onrender.com/";
 interface Ticket {
   id: number;
   title: string;
@@ -51,7 +51,7 @@ function App() {
     e.preventDefault();
     try {
       if (editingId !== null) {
-        const response = await fetch(`http://localhost:5000/api/tickets/${editingId}`, {
+        const response = await fetch(`${BASE_URL}/api/tickets/${editingId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, status }),
@@ -62,7 +62,7 @@ function App() {
         setEditingId(null);
         toast.success("Ticket updated successfully!");
       } else {
-        const response = await fetch("http://localhost:5000/api/tickets/", {
+        const response = await fetch(`${BASE_URL}/api/tickets/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, status }),
@@ -102,7 +102,7 @@ function App() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`http://localhost:5000/api/tickets/${id}`, { method: "DELETE" });
+      await fetch(`${BASE_URL}/api/tickets/${id}`, { method: "DELETE" });
       setTickets(tickets.filter((t) => t.id !== id));
       toast.success("Ticket deleted successfully!");
     } catch {
@@ -120,7 +120,7 @@ function App() {
     setIsChatLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/chat", {
+      const response = await fetch(`${BASE_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: chatInput }),
