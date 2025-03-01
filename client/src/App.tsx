@@ -7,6 +7,13 @@ interface Ticket {
   status: "To Do" | "In Progress" | "Testing" | "Deployed";
 }
 
+const STATUS_COLORS: Record<Ticket["status"], string> = {
+  "To Do": "#f1c40f",
+  "In Progress": "#3498db",
+  "Testing": "#9b59b6",
+  "Deployed": "#2ecc71",
+};
+
 function App() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [title, setTitle] = useState("");
@@ -39,22 +46,41 @@ function App() {
   };
 
   return (
-    <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
-      <h1>DevTrackHub Ticket Board</h1>
+    <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif", backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
+      <h1 style={{ marginBottom: "1.5rem" }}>🚀 DevTrackHub</h1>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} style={{ marginBottom: "2rem" }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          display: "flex",
+          gap: "1rem",
+          marginBottom: "2rem",
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Ticket title"
           required
-          style={{ padding: "0.5rem", marginRight: "1rem" }}
+          style={{
+            flex: "1",
+            padding: "0.6rem 1rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            fontSize: "1rem",
+          }}
         />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as Ticket["status"])}
-          style={{ padding: "0.5rem", marginRight: "1rem" }}
+          style={{
+            padding: "0.6rem",
+            borderRadius: "6px",
+            fontSize: "1rem",
+          }}
         >
           {Object.keys(grouped).map((status) => (
             <option key={status} value={status}>
@@ -62,29 +88,49 @@ function App() {
             </option>
           ))}
         </select>
-        <button type="submit" style={{ padding: "0.5rem 1rem" }}>
-          Create Ticket
+        <button
+          type="submit"
+          style={{
+            backgroundColor: "#2ecc71",
+            color: "white",
+            padding: "0.6rem 1.2rem",
+            border: "none",
+            borderRadius: "6px",
+            fontSize: "1rem",
+            cursor: "pointer",
+          }}
+        >
+          + Create Ticket
         </button>
       </form>
 
       {/* Board */}
-      <div style={{ display: "flex", gap: "1rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
         {Object.entries(grouped).map(([status, items]) => (
           <div
             key={status}
             style={{
-              flex: 1,
-              border: "1px solid #ccc",
-              padding: "1rem",
+              backgroundColor: "white",
               borderRadius: "8px",
-              background: "#f9f9f9",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              padding: "1rem",
+              minHeight: "200px",
             }}
           >
-            <h2>{status}</h2>
-            <ul>
+            <h2 style={{ color: STATUS_COLORS[status as Ticket["status"]] }}>{status}</h2>
+            <ul style={{ listStyle: "none", padding: 0 }}>
               {items.map((ticket) => (
-                <li key={ticket.id}>
-                  <strong>{ticket.title}</strong>
+                <li
+                  key={ticket.id}
+                  style={{
+                    backgroundColor: "#f9f9f9",
+                    padding: "0.5rem 1rem",
+                    margin: "0.5rem 0",
+                    borderRadius: "6px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                  }}
+                >
+                  {ticket.title}
                 </li>
               ))}
             </ul>
