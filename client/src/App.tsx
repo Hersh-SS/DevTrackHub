@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchTickets, advanceTicket } from "./api";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Ticket {
   id: number;
@@ -30,46 +32,52 @@ function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      if (editingId !== null) {
+        const response = await fetch(`http://localhost:5000/api/tickets/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, status }),
+        });
+        const updated = await response.json();
+        updated.status = capitalizeStatus(updated.status);
+        setTickets(tickets.map(t => (t.id === editingId ? updated : t)));
+        toast.success("Ticket updated successfully!");
+        setEditingId(null);
+      } else {
+        const response = await fetch("http://localhost:5000/api/tickets/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, status }),
+        });
+        const newTicket = await response.json();
+        newTicket.status = capitalizeStatus(newTicket.status);
+        setTickets([...tickets, newTicket]);
+        toast.success("Ticket created successfully!");
+      }
 
-    if (editingId !== null) {
-      const response = await fetch(`http://localhost:5000/api/tickets/${editingId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, status }),
-      });
-      const updated = await response.json();
-      updated.status = capitalizeStatus(updated.status);
-      setTickets(tickets.map(t => (t.id === editingId ? updated : t)));
-      setEditingId(null);
-    } else {
-      const response = await fetch("http://localhost:5000/api/tickets/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, status }),
-      });
-
-      const newTicket = await response.json();
-      newTicket.status = capitalizeStatus(newTicket.status);
-      setTickets([...tickets, newTicket]);
+      setTitle("");
+      setStatus("To Do");
+    } catch (err) {
+      toast.error("Failed to submit ticket.");
     }
-
-    setTitle("");
-    setStatus("To Do");
   };
 
   const handleAdvance = async (id: number) => {
-    try {
-      setAnimatingId(id);
-      const updated = await advanceTicket(id);
-      updated.status = capitalizeStatus(updated.status);
-      setTimeout(() => {
-        setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-        setAnimatingId(null);
-      }, 150);
-    } catch (err) {
-      console.error("Error advancing ticket:", err);
-    }
-  };
+  try {
+    setAnimatingId(id);
+    const updated = await advanceTicket(id);
+    updated.status = capitalizeStatus(updated.status);
+    setTimeout(() => {
+      setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setAnimatingId(null);
+      toast.success(`Ticket moved to ${updated.status}`);
+    }, 150);
+  } catch (err) {
+    console.error("Error advancing ticket:", err);
+    toast.error("Failed to move ticket.");
+  }
+};
 
   const handleEdit = (ticket: Ticket) => {
     setEditingId(ticket.id);
@@ -78,8 +86,13 @@ function App() {
   };
 
   const handleDelete = async (id: number) => {
-    await fetch(`http://localhost:5000/api/tickets/${id}`, { method: "DELETE" });
-    setTickets(tickets.filter((t) => t.id !== id));
+    try {
+      await fetch(`http://localhost:5000/api/tickets/${id}`, { method: "DELETE" });
+      setTickets(tickets.filter((t) => t.id !== id));
+      toast.success("Ticket deleted successfully!");
+    } catch (err) {
+      toast.error("Failed to delete ticket.");
+    }
   };
 
   const capitalizeStatus = (status: string): Ticket["status"] =>
@@ -103,6 +116,8 @@ function App() {
   };
 
   return (
+  <>
+    <ToastContainer position="top-center" autoClose={2000} hideProgressBar />
     <div
       style={{
         fontFamily: '"Inter", "Segoe UI", sans-serif',
@@ -136,7 +151,7 @@ function App() {
       `}</style>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: "2.4rem", marginBottom: "1.5rem" }}>🚀 DevTrackHub</h1>
+        <h1 style={{ fontSize: "2.4rem", marginBottom: "1.5rem" }}>DevTrackHub</h1>
         <div className="toggle" onClick={() => setDarkMode((d) => !d)} style={{ cursor: "pointer" }} />
       </div>
 
@@ -237,6 +252,7 @@ function App() {
                     backgroundColor: darkMode ? "#3a3a4f" : "#ffffff",
                     padding: "0.75rem 1rem",
                     margin: "0.5rem 0",
+                    border: `1px solid ${darkMode ? "#fff" : "#000"}`,
                     borderRadius: "8px",
                     display: "flex",
                     justifyContent: "flex-start",
@@ -304,7 +320,8 @@ function App() {
         ))}
       </div>
     </div>
-  );
+  </>
+);
 }
 
 export default App;
