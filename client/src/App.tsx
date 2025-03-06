@@ -27,12 +27,23 @@ function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Submitting:", { title, status });
     const response = await fetch("http://localhost:5000/api/tickets/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, status }),
     });
+
     const newTicket = await response.json();
+    console.log("New ticket created:", newTicket);
+
+    // Normalize status to match board keys
+    const normalizedStatus = newTicket.status
+      .split(" ")
+      .map((s: string) => s[0].toUpperCase() + s.slice(1).toLowerCase())
+      .join(" ");
+    newTicket.status = normalizedStatus;
+
     setTickets([...tickets, newTicket]);
     setTitle("");
     setStatus("To Do");

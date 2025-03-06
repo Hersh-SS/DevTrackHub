@@ -1,25 +1,32 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request, jsonify
 
-tickets_bp = Blueprint("tickets", __name__, url_prefix="/api/tickets")
+tickets_bp = Blueprint("tickets", __name__)
 
-# In-memory store
-TICKETS = [
-    {"id": 1, "title": "Set up CI pipeline", "status": "In Progress"},
-    {"id": 2, "title": "Create ticket board UI", "status": "To Do"},
-    {"id": 3, "title": "Build Docker container", "status": "Testing"},
-]
+# In-memory ticket store
+tickets = []
+ticket_id_counter = 1
 
-@tickets_bp.route("/", methods=["GET"])
-def get_tickets():
-    return jsonify(TICKETS)
+@tickets_bp.route("/api/tickets/", methods=["GET", "POST"])
+def handle_tickets():
+    global ticket_id_counter
 
-@tickets_bp.route("/", methods=["POST"])
-def create_ticket():
-    data = request.get_json()
-    new_ticket = {
-        "id": len(TICKETS) + 1,
-        "title": data["title"],
-        "status": data["status"]
-    }
-    TICKETS.append(new_ticket)
-    return jsonify(new_ticket), 201
+    if request.method == "GET":
+        return jsonify(tickets)
+
+    if request.method == "POST":
+        data = request.get_json()
+        title = data.get("title", "").strip()
+        status = data.get("status", "").strip()
+
+        if not title or not status:
+            return jsonify({"error": "Missing title or status"}), 400
+
+        ticket = {
+            "id": ticket_id_counter,
+            "title": title,
+            "status": status,
+        }
+        tickets.append(ticket)
+        ticket_id_counter += 1
+
+        return jsonify(ticket), 201
