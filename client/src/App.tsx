@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchTickets } from "./api";
+import { fetchTickets, advanceTicket } from "./api";
 
 interface Ticket {
   id: number;
@@ -27,7 +27,6 @@ function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitting:", { title, status });
     const response = await fetch("http://localhost:5000/api/tickets/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -35,9 +34,6 @@ function App() {
     });
 
     const newTicket = await response.json();
-    console.log("New ticket created:", newTicket);
-
-    // Normalize status to match board keys
     const normalizedStatus = newTicket.status
       .split(" ")
       .map((s: string) => s[0].toUpperCase() + s.slice(1).toLowerCase())
@@ -47,6 +43,17 @@ function App() {
     setTickets([...tickets, newTicket]);
     setTitle("");
     setStatus("To Do");
+  };
+
+  const handleAdvance = async (id: number) => {
+    try {
+      const updated = await advanceTicket(id);
+      setTickets((prev) =>
+        prev.map((t) => (t.id === updated.id ? updated : t))
+      );
+    } catch (err) {
+      console.error("Error advancing ticket:", err);
+    }
   };
 
   const grouped = {
@@ -139,9 +146,28 @@ function App() {
                     margin: "0.5rem 0",
                     borderRadius: "6px",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                   }}
                 >
                   {ticket.title}
+                  {ticket.status !== "Deployed" && (
+                    <button
+                      onClick={() => handleAdvance(ticket.id)}
+                      style={{
+                        marginLeft: "1rem",
+                        backgroundColor: "#3498db",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "0.3rem 0.6rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      ➡️
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
