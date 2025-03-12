@@ -1,12 +1,13 @@
 from flask import Blueprint, request, jsonify
+from utils.storage import load_tickets, save_tickets
 
 tickets_bp = Blueprint("tickets", __name__)
 
-# In-memory ticket store
-tickets = []
-ticket_id_counter = 1
+# Load existing tickets from file
+tickets = load_tickets()
+ticket_id_counter = max((t["id"] for t in tickets), default=0) + 1
 
-# Define status order
+# Order of statuses for advancing logic
 STATUS_ORDER = ["To Do", "In Progress", "Testing", "Deployed"]
 
 @tickets_bp.route("/api/tickets/", methods=["GET", "POST"])
@@ -31,7 +32,7 @@ def handle_tickets():
         }
         tickets.append(ticket)
         ticket_id_counter += 1
-
+        save_tickets(tickets)
         return jsonify(ticket), 201
 
 @tickets_bp.route("/api/tickets/<int:ticket_id>/advance", methods=["PATCH"])
@@ -41,27 +42,27 @@ def advance_ticket(ticket_id):
             current_index = STATUS_ORDER.index(ticket["status"])
             if current_index < len(STATUS_ORDER) - 1:
                 ticket["status"] = STATUS_ORDER[current_index + 1]
+                save_tickets(tickets)
                 return jsonify(ticket)
             else:
                 return jsonify({"error": "Ticket is already in final status"}), 400
-
     return jsonify({"error": "Ticket not found"}), 404
 
-@tickets_bp.route("/api/tickets/<int:ticket_id>", methods=["PATCH"])
-def update_ticket(ticket_id):
-    data = request.get_json()
-    for ticket in tickets:
-        if ticket["id"] == ticket_id:
-            ticket["title"] = data.get("title", ticket["title"]).strip()
-            ticket["status"] = data.get("status", ticket["status"]).strip()
-            return jsonify(ticket)
-    return jsonify({"error": "Ticket not found"}), 404
-
-@tickets_bp.route("/api/tickets/<int:ticket_id>", methods=["DELETE"])
-def delete_ticket(ticket_id):
+@tickets_bp.route("/api/tickets/<int:ticket_id>", methods=["PATCH", "DELETE"])
+def modify_ticket(ticket_id):
     global tickets
-    original_len = len(tickets)
-    tickets = [ticket for ticket in tickets if ticket["id"] != ticket_id]
-    if len(tickets) < original_len:
-        return jsonify({"message": "Deleted"}), 200
-    return jsonify({"error": "Ticket not found"}), 404
+    ticket = next((t for t in tickets if t["id"] == ticket_id), None)
+    if not ticket:
+        return jsonify({"error": "Ticket not found"}), 404
+
+    if request.method == "PATCH":
+        data = request.get_json()
+        ticket["title"] = data.get("title", ticket["title"]).strip()
+        ticket["status"] = data.get("status", ticket["status"]).strip()
+        save_tickets(tickets)
+        return jsonify(ticket)
+
+    if request.method == "DELETE":
+        tickets = [t for t in tickets if t["id"] != ticket_id]
+        save_tickets(tickets)
+        return jsonify({"message": "Deleted"}), 204
