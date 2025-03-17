@@ -8,16 +8,18 @@ interface Ticket {
 }
 
 const STATUS_COLORS: Record<Ticket["status"], string> = {
-  "To Do": "#f1c40f",
-  "In Progress": "#3498db",
-  "Testing": "#9b59b6",
-  "Deployed": "#2ecc71",
+  "To Do": "#f39c12",
+  "In Progress": "#2980b9",
+  "Testing": "#8e44ad",
+  "Deployed": "#27ae60",
 };
 
 function App() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<Ticket["status"]>("To Do");
+  const [darkMode, setDarkMode] = useState(false);
+  const [animatingId, setAnimatingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTickets()
@@ -34,11 +36,7 @@ function App() {
     });
 
     const newTicket = await response.json();
-    const normalizedStatus = newTicket.status
-      .split(" ")
-      .map((s: string) => s[0].toUpperCase() + s.slice(1).toLowerCase())
-      .join(" ");
-    newTicket.status = normalizedStatus;
+    newTicket.status = capitalizeStatus(newTicket.status);
 
     setTickets([...tickets, newTicket]);
     setTitle("");
@@ -47,14 +45,25 @@ function App() {
 
   const handleAdvance = async (id: number) => {
     try {
+      setAnimatingId(id);
       const updated = await advanceTicket(id);
-      setTickets((prev) =>
-        prev.map((t) => (t.id === updated.id ? updated : t))
-      );
+      updated.status = capitalizeStatus(updated.status);
+      setTimeout(() => {
+        setTickets((prev) =>
+          prev.map((t) => (t.id === updated.id ? updated : t))
+        );
+        setAnimatingId(null);
+      }, 150);
     } catch (err) {
       console.error("Error advancing ticket:", err);
     }
   };
+
+  const capitalizeStatus = (status: string): Ticket["status"] =>
+    status
+      .split(" ")
+      .map((s) => s[0].toUpperCase() + s.slice(1).toLowerCase())
+      .join(" ") as Ticket["status"];
 
   const grouped = {
     "To Do": tickets.filter((t) => t.status === "To Do"),
@@ -63,9 +72,50 @@ function App() {
     "Deployed": tickets.filter((t) => t.status === "Deployed"),
   };
 
+  const theme = {
+    bg: darkMode ? "#1a1a2c" : "#f4f4f4",
+    panel: darkMode ? "#2a2a3e" : "#ffffff",
+    text: darkMode ? "#ffffff" : "#1a1a2c",
+    border: darkMode ? "#444" : "#ccc",
+  };
+
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif", backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
-      <h1 style={{ marginBottom: "1.5rem" }}>🚀 DevTrackHub</h1>
+    <div
+      style={{
+        fontFamily: '"Inter", "Segoe UI", sans-serif',
+        backgroundColor: theme.bg,
+        color: theme.text,
+        minHeight: "100vh",
+        padding: "2rem",
+        transition: "all 0.4s ease",
+      }}
+    >
+      <style>{`
+        .toggle {
+          position: relative;
+          width: 50px;
+          height: 26px;
+          background: ${darkMode ? "#444" : "#ccc"};
+          border-radius: 30px;
+          transition: background 0.3s ease;
+        }
+        .toggle::before {
+          content: "";
+          position: absolute;
+          top: 3px;
+          left: ${darkMode ? "26px" : "3px"};
+          width: 20px;
+          height: 20px;
+          background: white;
+          border-radius: 50%;
+          transition: left 0.3s ease;
+        }
+      `}</style>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 style={{ fontSize: "2.4rem", marginBottom: "1.5rem" }}>🚀 DevTrackHub</h1>
+        <div className="toggle" onClick={() => setDarkMode((d) => !d)} style={{ cursor: "pointer" }} />
+      </div>
 
       {/* Form */}
       <form
@@ -76,6 +126,10 @@ function App() {
           marginBottom: "2rem",
           alignItems: "center",
           flexWrap: "wrap",
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
+          padding: "1rem",
+          borderRadius: "12px",
         }}
       >
         <input
@@ -85,37 +139,41 @@ function App() {
           required
           style={{
             flex: "1",
-            padding: "0.6rem 1rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
+            padding: "0.75rem 1rem",
+            borderRadius: "8px",
+            border: `1px solid ${theme.border}`,
             fontSize: "1rem",
+            background: darkMode ? "#3b3b4f" : "#fff",
+            color: theme.text,
           }}
         />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as Ticket["status"])}
           style={{
-            padding: "0.6rem",
-            borderRadius: "6px",
+            padding: "0.75rem",
+            borderRadius: "8px",
             fontSize: "1rem",
+            background: darkMode ? "#3b3b4f" : "#fff",
+            color: theme.text,
+            border: `1px solid ${theme.border}`,
           }}
         >
-          {Object.keys(grouped).map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
+          {Object.keys(grouped).map((s) => (
+            <option key={s} value={s}>{s}</option>
           ))}
         </select>
         <button
           type="submit"
           style={{
             backgroundColor: "#2ecc71",
-            color: "white",
-            padding: "0.6rem 1.2rem",
-            border: "none",
-            borderRadius: "6px",
+            color: "#fff",
+            padding: "0.75rem 1.5rem",
+            borderRadius: "8px",
             fontSize: "1rem",
+            border: "none",
             cursor: "pointer",
+            boxShadow: "0 0 10px rgba(46,204,113,0.4)",
           }}
         >
           + Create Ticket
@@ -123,32 +181,47 @@ function App() {
       </form>
 
       {/* Board */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.5rem" }}>
         {Object.entries(grouped).map(([status, items]) => (
           <div
             key={status}
             style={{
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              background: theme.panel,
+              border: `1px solid ${theme.border}`,
               padding: "1rem",
-              minHeight: "200px",
+              borderRadius: "12px",
+              minHeight: "220px",
             }}
           >
-            <h2 style={{ color: STATUS_COLORS[status as Ticket["status"]] }}>{status}</h2>
+            <h2 style={{
+              color: STATUS_COLORS[status as Ticket["status"]],
+              fontSize: "1.2rem",
+              fontWeight: 600,
+              marginBottom: "0.8rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+            }}>
+              {status}
+            </h2>
             <ul style={{ listStyle: "none", padding: 0 }}>
               {items.map((ticket) => (
                 <li
                   key={ticket.id}
                   style={{
-                    backgroundColor: "#f9f9f9",
-                    padding: "0.5rem 1rem",
+                    fontFamily: '"Inter", "Segoe UI", sans-serif',
+                    fontWeight: 500,
+                    fontSize: "0.95rem",
+                    backgroundColor: darkMode ? "#3a3a4f" : "#ffffff",
+                    padding: "0.75rem 1rem",
                     margin: "0.5rem 0",
-                    borderRadius: "6px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                    borderRadius: "8px",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                    opacity: ticket.id === animatingId ? 0.3 : 1,
+                    transform: ticket.id === animatingId ? "translateX(10px)" : "translateX(0)",
+                    transition: "all 0.3s ease",
                   }}
                 >
                   {ticket.title}
@@ -160,9 +233,10 @@ function App() {
                         backgroundColor: "#3498db",
                         color: "white",
                         border: "none",
-                        borderRadius: "4px",
-                        padding: "0.3rem 0.6rem",
+                        borderRadius: "6px",
+                        padding: "0.4rem 0.7rem",
                         cursor: "pointer",
+                        fontWeight: "bold",
                       }}
                     >
                       ➡️
