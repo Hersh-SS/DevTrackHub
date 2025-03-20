@@ -20,6 +20,7 @@ function App() {
   const [status, setStatus] = useState<Ticket["status"]>("To Do");
   const [darkMode, setDarkMode] = useState(false);
   const [animatingId, setAnimatingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTickets()
@@ -29,16 +30,29 @@ function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const response = await fetch("http://localhost:5000/api/tickets/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, status }),
-    });
 
-    const newTicket = await response.json();
-    newTicket.status = capitalizeStatus(newTicket.status);
+    if (editingId !== null) {
+      const response = await fetch(`http://localhost:5000/api/tickets/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, status }),
+      });
+      const updated = await response.json();
+      updated.status = capitalizeStatus(updated.status);
+      setTickets(tickets.map(t => (t.id === editingId ? updated : t)));
+      setEditingId(null);
+    } else {
+      const response = await fetch("http://localhost:5000/api/tickets/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, status }),
+      });
 
-    setTickets([...tickets, newTicket]);
+      const newTicket = await response.json();
+      newTicket.status = capitalizeStatus(newTicket.status);
+      setTickets([...tickets, newTicket]);
+    }
+
     setTitle("");
     setStatus("To Do");
   };
@@ -49,14 +63,23 @@ function App() {
       const updated = await advanceTicket(id);
       updated.status = capitalizeStatus(updated.status);
       setTimeout(() => {
-        setTickets((prev) =>
-          prev.map((t) => (t.id === updated.id ? updated : t))
-        );
+        setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
         setAnimatingId(null);
       }, 150);
     } catch (err) {
       console.error("Error advancing ticket:", err);
     }
+  };
+
+  const handleEdit = (ticket: Ticket) => {
+    setEditingId(ticket.id);
+    setTitle(ticket.title);
+    setStatus(ticket.status);
+  };
+
+  const handleDelete = async (id: number) => {
+    await fetch(`http://localhost:5000/api/tickets/${id}`, { method: "DELETE" });
+    setTickets(tickets.filter((t) => t.id !== id));
   };
 
   const capitalizeStatus = (status: string): Ticket["status"] =>
@@ -176,7 +199,7 @@ function App() {
             boxShadow: "0 0 10px rgba(46,204,113,0.4)",
           }}
         >
-          + Create Ticket
+          {editingId ? "Update" : "+ Create"} Ticket
         </button>
       </form>
 
@@ -216,7 +239,8 @@ function App() {
                     margin: "0.5rem 0",
                     borderRadius: "8px",
                     display: "flex",
-                    justifyContent: "space-between",
+                    justifyContent: "flex-start",
+                    gap: "auto",
                     alignItems: "center",
                     boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                     opacity: ticket.id === animatingId ? 0.3 : 1,
@@ -224,13 +248,13 @@ function App() {
                     transition: "all 0.3s ease",
                   }}
                 >
-                  {ticket.title}
-                  {ticket.status !== "Deployed" && (
+                  <span style={{ marginRight: "1rem" }}>{ticket.title}</span>
+                  <div>
                     <button
-                      onClick={() => handleAdvance(ticket.id)}
+                      onClick={() => handleEdit(ticket)}
                       style={{
-                        marginLeft: "1rem",
-                        backgroundColor: "#3498db",
+                        marginRight: "0.5rem",
+                        backgroundColor: "#f1c40f",
                         color: "white",
                         border: "none",
                         borderRadius: "6px",
@@ -239,9 +263,40 @@ function App() {
                         fontWeight: "bold",
                       }}
                     >
-                      ➡️
+                      ✏️
                     </button>
-                  )}
+                    <button
+                      onClick={() => handleDelete(ticket.id)}
+                      style={{
+                        marginRight: "0.5rem",
+                        backgroundColor: "#e74c3c",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "0.4rem 0.7rem",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      🗑️
+                    </button>
+                    {ticket.status !== "Deployed" && (
+                      <button
+                        onClick={() => handleAdvance(ticket.id)}
+                        style={{
+                          backgroundColor: "#3498db",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "6px",
+                          padding: "0.4rem 0.7rem",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ➡️
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

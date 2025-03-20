@@ -46,3 +46,22 @@ def advance_ticket(ticket_id):
                 return jsonify({"error": "Ticket is already in final status"}), 400
 
     return jsonify({"error": "Ticket not found"}), 404
+
+@tickets_bp.route("/api/tickets/<int:ticket_id>", methods=["PATCH"])
+def update_ticket(ticket_id):
+    data = request.get_json()
+    for ticket in tickets:
+        if ticket["id"] == ticket_id:
+            ticket["title"] = data.get("title", ticket["title"]).strip()
+            ticket["status"] = data.get("status", ticket["status"]).strip()
+            return jsonify(ticket)
+    return jsonify({"error": "Ticket not found"}), 404
+
+@tickets_bp.route("/api/tickets/<int:ticket_id>", methods=["DELETE"])
+def delete_ticket(ticket_id):
+    global tickets
+    original_len = len(tickets)
+    tickets = [ticket for ticket in tickets if ticket["id"] != ticket_id]
+    if len(tickets) < original_len:
+        return jsonify({"message": "Deleted"}), 200
+    return jsonify({"error": "Ticket not found"}), 404
