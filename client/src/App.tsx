@@ -219,7 +219,15 @@ function App() {
       </form>
 
       {/* Board */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "flex-start" }}>
+        <div
+          style={{
+            width: "65vw",
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "1.5rem",
+          }}
+        >
         {Object.entries(grouped).map(([status, items]) => (
           <div
             key={status}
@@ -228,7 +236,9 @@ function App() {
               border: `1px solid ${theme.border}`,
               padding: "1rem",
               borderRadius: "12px",
-              minHeight: "220px",
+              height: "100%",
+              minHeight: "180px",
+              overflowY: "auto",
             }}
           >
             <h2 style={{
@@ -255,61 +265,98 @@ function App() {
                     border: `1px solid ${darkMode ? "#fff" : "#000"}`,
                     borderRadius: "8px",
                     display: "flex",
-                    justifyContent: "flex-start",
-                    gap: "auto",
+                    justifyContent: "space-between",
                     alignItems: "center",
                     boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                     opacity: ticket.id === animatingId ? 0.3 : 1,
                     transform: ticket.id === animatingId ? "translateX(10px)" : "translateX(0)",
                     transition: "all 0.3s ease",
+                    wordWrap: "break-word",
+                    maxWidth: "100%",
                   }}
                 >
-                  <span style={{ marginRight: "1rem" }}>{ticket.title}</span>
+                  <span
+                    style={{
+                      marginRight: "1rem",
+                      flex: 1,
+                      wordWrap: "break-word",
+                      overflowWrap: "break-word",
+                      whiteSpace: "pre-wrap",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {ticket.title}
+                  </span>
                   <div>
                     <button
                       onClick={() => handleEdit(ticket)}
                       style={{
                         marginRight: "0.5rem",
-                        backgroundColor: "#f1c40f",
-                        color: "white",
+                        backgroundColor: "transparent",
                         border: "none",
                         borderRadius: "6px",
-                        padding: "0.4rem 0.7rem",
-                        cursor: "pointer",
-                        fontWeight: "bold",
+                        padding: 0,
+                        display: "inline-flex",
                       }}
                     >
-                      ✏️
+                      <img
+                        src="/icons/edit.png"
+                        alt="Edit"
+                        style={{
+                          width: "35px",
+                          height: "35px",
+                          display: "block",
+                          objectFit: "contain",
+                          transform: "translateY(2px)",
+                        }}
+                      />
                     </button>
                     <button
                       onClick={() => handleDelete(ticket.id)}
                       style={{
                         marginRight: "0.5rem",
-                        backgroundColor: "#e74c3c",
-                        color: "white",
+                        backgroundColor: "transparent",
                         border: "none",
                         borderRadius: "6px",
-                        padding: "0.4rem 0.7rem",
-                        cursor: "pointer",
-                        fontWeight: "bold",
+                        padding: 0,
+                        display: "inline-flex",
                       }}
                     >
-                      🗑️
+                      <img
+                        src="/icons/delete.png"
+                        alt="Edit"
+                        style={{
+                          width: "22px",
+                          height: "22px",
+                          display: "block",
+                          objectFit: "contain",
+                          transform: "translateY(-4px)",
+                        }}
+                      />
                     </button>
                     {ticket.status !== "Deployed" && (
                       <button
                         onClick={() => handleAdvance(ticket.id)}
                         style={{
-                          backgroundColor: "#3498db",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "0.4rem 0.7rem",
-                          cursor: "pointer",
-                          fontWeight: "bold",
+                        marginRight: "0.5rem",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: 0,
+                        display: "inline-flex",
                         }}
                       >
-                        ➡️
+                        <img
+                          src="/icons/advance.png"
+                          alt="Edit"
+                          style={{
+                            width: "30px",
+                            height: "30px",
+                            display: "block",
+                            objectFit: "contain",
+                            transform: "translateX(4px)",
+                          }}
+                        />
                       </button>
                     )}
                   </div>
@@ -319,6 +366,7 @@ function App() {
           </div>
         ))}
       </div>
+    </div>
     </div>
   </>
 );
