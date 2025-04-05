@@ -14,8 +14,7 @@ app = Flask(__name__)
 
 # CORS: allow localhost during dev and Vercel in production
 CORS(app, origins=[
-    "http://localhost:5173",
-    "https://your-frontend.vercel.app"  # 🔁 Replace with your actual deployed frontend URL
+    "https://dev-track-6hh5otb7o-hersh-ss-projects.vercel.app"
 ])
 
 # Database configuration
