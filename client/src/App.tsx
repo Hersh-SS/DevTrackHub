@@ -56,6 +56,12 @@ function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, status }),
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Update failed: ${response.status} - ${errorText}`);
+        }
+
         const updated = await response.json();
         updated.status = capitalizeStatus(updated.status);
         setTickets(tickets.map((t) => (t.id === editingId ? updated : t)));
@@ -67,14 +73,22 @@ function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, status }),
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Create failed: ${response.status} - ${errorText}`);
+        }
+
         const newTicket = await response.json();
         newTicket.status = capitalizeStatus(newTicket.status);
         setTickets([...tickets, newTicket]);
         toast.success("Ticket created successfully!");
       }
+
       setTitle("");
       setStatus("To Do");
-    } catch {
+    } catch (err: any) {
+      console.error("Submit error:", err);
       toast.error("Failed to submit ticket.");
     }
   };
@@ -82,14 +96,25 @@ function App() {
   const handleAdvance = async (id: number) => {
     try {
       setAnimatingId(id);
-      const updated = await advanceTicket(id);
+      const response = await fetch(`${BASE_URL}/api/tickets/${id}/advance`, {
+        method: "PATCH",
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Advance failed: ${response.status} - ${errorText}`);
+      }
+
+      const updated = await response.json();
       updated.status = capitalizeStatus(updated.status);
+
       setTimeout(() => {
         setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
         setAnimatingId(null);
         toast.success(`Ticket moved to ${updated.status}`);
       }, 150);
-    } catch {
+    } catch (err: any) {
+      console.error("Advance error:", err);
       toast.error("Failed to move ticket.");
     }
   };
@@ -102,10 +127,17 @@ function App() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`${BASE_URL}/api/tickets/${id}`, { method: "DELETE" });
+      const response = await fetch(`${BASE_URL}/api/tickets/${id}`, { method: "DELETE" });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Delete failed: ${response.status} - ${errorText}`);
+      }
+
       setTickets(tickets.filter((t) => t.id !== id));
       toast.success("Ticket deleted successfully!");
-    } catch {
+    } catch (err: any) {
+      console.error("Delete error:", err);
       toast.error("Failed to delete ticket.");
     }
   };
@@ -125,9 +157,15 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: chatInput }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Chat failed: ${response.status} - ${errorText}`);
+      }
+
       const data = await response.json();
       if (data.error) throw new Error(data.error);
-      console.log("Frontend received response:", data.response, "Length:", data.response.length); // Debug
+
       setMessages((prev) => [...prev, { role: "assistant", content: data.response }]);
       toast.success("Message received!");
     } catch (error) {
