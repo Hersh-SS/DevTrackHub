@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { fetchTickets, advanceTicket } from "./api";
+import { fetchTickets } from "./api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const BASE_URL = "https://devtrackhub.onrender.com/";
