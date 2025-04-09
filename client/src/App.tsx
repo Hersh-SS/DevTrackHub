@@ -36,11 +36,22 @@ function App() {
   useEffect(() => {
     document.body.style.overflow = "hidden";
 
+    // Initial cold-start ping
     fetch(`${import.meta.env.VITE_API_URL}/`)
       .then(() => console.log("Backend pinged to prevent cold start"))
       .catch(console.error);
 
+    // Load tickets
     fetchTickets().then(setTickets).catch(console.error);
+
+    // Interval ping every 10 minutes
+    const interval = setInterval(() => {
+      fetch(`${import.meta.env.VITE_API_URL}/`)
+        .then(() => console.log("Backend pinged again"))
+        .catch(console.error);
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
